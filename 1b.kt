@@ -1,23 +1,30 @@
 sealed class Coordinate {
-    abstract fun toExcel(): Excel
-    abstract fun toCanonical(): Canonical
-    abstract fun toOpposite(): Coordinate
+    companion object {
+        fun parse(s: String): Coordinate {
+            val match = Canonical.FMT.matchEntire(s)
+            return if (match != null) {
+                Canonical(match.groupValues[1].toInt(), match.groupValues[2].toInt())
+            } else {
+                val col = s.takeWhile { it.isLetter() };
+                Excel(s.substring(col.length).toInt(), col)
+            }
+        }
+    }
+
+    fun toOpposite(): Coordinate {
+        return when (this) {
+            is Excel -> toCanonical()
+            is Canonical -> toExcel()
+        }
+    }
 
     data class Excel(val row: Int, val col: String) : Coordinate() {
-        override fun toExcel(): Excel {
-            return this
-        }
-
-        override fun toCanonical(): Canonical {
+        fun toCanonical(): Canonical {
             var numeric = 0
             for (ch in col) {
                 numeric = numeric * 26 + (ch - 'A' + 1)
             }
             return Canonical(row, numeric)
-        }
-
-        override fun toOpposite(): Coordinate {
-            return toCanonical()
         }
 
         override fun toString(): String {
@@ -28,7 +35,7 @@ sealed class Coordinate {
         companion object {
             val FMT: Regex = Regex("""R(\d+)C(\d+)""")
         }
-        override fun toExcel(): Excel {
+        fun toExcel(): Excel {
             val chars = mutableListOf<Char>()
             var tmp = col
             while (tmp > 0) {
@@ -36,13 +43,6 @@ sealed class Coordinate {
                 tmp = (tmp - 1) / 26
             }
             return Excel(row, chars.reversed().joinToString(""))
-        }
-        override fun toCanonical(): Canonical {
-            return this
-        }
-
-        override fun toOpposite(): Coordinate {
-            return toExcel()
         }
 
         override fun toString(): String {
@@ -52,17 +52,5 @@ sealed class Coordinate {
 }
 
 fun main() {
-    val n = readln().toInt()
-
-    repeat(n) {
-        val coord = readln()
-        val match = Coordinate.Canonical.FMT.matchEntire(coord)
-        val coordinate: Coordinate = if (match != null) {
-            Coordinate.Canonical(match.groupValues[1].toInt(), match.groupValues[2].toInt())
-        } else {
-            val col = coord.takeWhile { it.isLetter() };
-            Coordinate.Excel(coord.substring(col.length).toInt(), col)
-        }
-        println(coordinate.toOpposite())
-    }
+    repeat(readln().toInt()) { println(Coordinate.parse(readln()).toOpposite()) }
 }
